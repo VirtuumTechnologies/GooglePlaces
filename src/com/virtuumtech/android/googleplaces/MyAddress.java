@@ -32,12 +32,9 @@ import android.util.Log;
 public class MyAddress implements ConnectionCallbacks,
 		OnConnectionFailedListener {
 	private static final String TAG = "MyAddress";
-	public static final String PACKAGE_NAME = "com.virtuumtech.android.lib.MyAddress";
-	public static final String RECEIVER = PACKAGE_NAME + ".RECEIVER";
+	public static final String PACKAGE_NAME = "com.virtuumtech.android.googleplaces.MyAddress";
 	public static final String LOCATION = PACKAGE_NAME + ".LOCATION";
 	public static final String MAXRESULTS = PACKAGE_NAME + ".MAXRESULTS";
-	public static final String MODE = PACKAGE_NAME + ".MODE";
-	public static final String APPKEY = PACKAGE_NAME + ".APPKEY";
 	public static final String RESULT_DATA = PACKAGE_NAME + ".RESULT_DATA";
 
 	private Location mLocation;
@@ -196,22 +193,31 @@ public class MyAddress implements ConnectionCallbacks,
 		ResultReceiver resultReceiver = new ResultReceiver(new Handler()) {
 			public void onReceiveResult(int resultCode, Bundle resultData) {
 				Log.v(TAG, "onReciveResult");
-				mAddressList = (List) resultData.getParcelableArrayList(RESULT_DATA);
-				if (mAddressList != null) {
-					if (mAddressList.isEmpty() == false) {
+				if (resultCode == MyAddress.SUCCESS) {
+					Log.i(TAG,"Address Request is successful");
+					mAddressList = resultData
+							.getParcelableArrayList(RESULT_DATA);
+					if (mAddressList.isEmpty() == true) {
+						mAddress = null;
+						resultCode = MyAddress.FAILURE;
+					} else {
+						// mAddressList = (List) mAddressList;
 						mAddress = mAddressList.get(0);
 					}
 				} else {
+					Log.e(TAG,"Address Request is not successful");
 					mAddress = null;
+					resultCode = MyAddress.FAILURE;
 				}
 				addressListener.onAddressesUpdate(resultCode, mAddressList);
 			}
 		};
 
-		//Passing the values to service class FetchAddressService using intent
-		Intent intent = new Intent(mContext, FetchAddressService.class);
-		intent.putExtra(RECEIVER, resultReceiver);
+		//Passing the values to service class NetworkService to get the address using intent
+		Intent intent = new Intent(mContext, NetworkService.class);
+		intent.putExtra(NetworkService.SERVICE, NetworkService.ACTION_LOCATION_ADDRESS);
 		intent.putExtra(LOCATION, mLocation);
+		intent.putExtra(NetworkService.RECEIVER, resultReceiver);
 		intent.putExtra(MAXRESULTS, maxResults);
 		mContext.startService(intent);
 	}
@@ -246,6 +252,18 @@ public class MyAddress implements ConnectionCallbacks,
 		String addressStr = "";
 		if (mAddress != null) {
 			addressStr = mAddress.getLocality()+", "+mAddress.getAdminArea();
+		}
+		return addressStr;		
+	}
+	
+	/** To get the Location Name 
+	 * 
+	 * @return String Returns the city name
+	 */
+	public String getLocationName() {
+		String addressStr = "";
+		if (mAddress != null) {
+			addressStr = mAddress.getAddressLine(0)+", "+ mAddress.getLocality()+", "+ mAddress.getAdminArea();
 		}
 		return addressStr;		
 	}

@@ -54,7 +54,7 @@ public class MyLocation implements ConnectionCallbacks, OnConnectionFailedListen
 	private LocationRequest mLocationReq;
 	private GoogleApiClient mGoogleApiClient;
 	private LocationUpdateListener mLocationListener;
-	LocationManager mLocationManager;
+	private LocationManager mLocationManager;
 	
 	/**
 	 * Construct a new MyLocation 
