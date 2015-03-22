@@ -42,6 +42,7 @@ public abstract class SearchQuery extends ResultReceiver {
 	private int statusCode ;
 	private Context mContext;
 	private long lastQueryTime = 0;
+	private SearchUpdateListener mUpdateListener;
 	
 	//To store the list of parameters required for google search
 	private HashMap<String, String> searchParameters = new HashMap<String, String>();
@@ -51,6 +52,7 @@ public abstract class SearchQuery extends ResultReceiver {
 		super(new Handler());
 		mContext = context;
 		urlQuery = queryUrl;
+		mUpdateListener = (SearchUpdateListener) context;
 		addParameter("key", apikey);
 	}
 
@@ -317,7 +319,7 @@ public abstract class SearchQuery extends ResultReceiver {
 		Log.d(TAG,"Result Code:"+resultCode+" - "+RequestStatus.getStatusValue(resultCode));
 		ArrayList<PlaceSummary> pDetails;
 		String data = bundle.getCharSequence(NetworkService.DATA).toString();
-
+		Log.d(TAG,data);
 		//Set the query time, hence next query time can be calculated
 		setLastQueryTime();
 		
@@ -330,9 +332,7 @@ public abstract class SearchQuery extends ResultReceiver {
 		} else {
 			Log.i(TAG,"Search Query is successful");
 			pDetails = readJsonFileForPlacesDetails(data);
-			for (int i = 0; i < pDetails.size(); i++) {
-				Log.d(TAG,pDetails.get(i).toString());
-			}
 		}
+		mUpdateListener.onSearchResultsUpdate(getStatusCode(),pDetails);
 	}
 }

@@ -3,7 +3,7 @@
  */
 
 /**
- * Interface definition for Location Updates
+ * Interface definition for Location and Address Updates
  * 
  * @author  
  * @version 1.0
