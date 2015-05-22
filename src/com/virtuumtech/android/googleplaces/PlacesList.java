@@ -17,22 +17,22 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 //Implements Parcelable, so that this class can be passed between processes and activities. 
-public class PlaceSummary implements Parcelable {
+public class PlacesList implements Parcelable {
 
 	private String placeID;
 	private String name;
-	private String openNow = "Not Known";
+	private String openNow = "";
 	private String address = "";
 	private double rating;
 	private Location location;
 	
 	
-	public PlaceSummary() {
+	public PlacesList() {
 		super();
 	}
 
 	//To read from parcel. Reading in the same order the members are written. 
-	public PlaceSummary(Parcel source) {
+	public PlacesList(Parcel source) {
 		super();
 		placeID = source.readString();
 		name = source.readString();
@@ -157,18 +157,18 @@ public class PlaceSummary implements Parcelable {
 	}
 	
 	// Mandatory definition on implementing parcelable
-	public static final Parcelable.Creator<PlaceSummary> CREATOR = new Parcelable.Creator<PlaceSummary>() {
+	public static final Parcelable.Creator<PlacesList> CREATOR = new Parcelable.Creator<PlacesList>() {
 
 		// Creating new PlaceSummary by reading from parcel
 		@Override
-		public PlaceSummary createFromParcel(Parcel source) {
-			return new PlaceSummary(source);
+		public PlacesList createFromParcel(Parcel source) {
+			return new PlacesList(source);
 		}
 
 		// Reading from Parcel when Array of PlaceSummary is used
 		@Override
-		public PlaceSummary[] newArray(int size) {
-			return new PlaceSummary[size];
+		public PlacesList[] newArray(int size) {
+			return new PlacesList[size];
 		}
 
 	};

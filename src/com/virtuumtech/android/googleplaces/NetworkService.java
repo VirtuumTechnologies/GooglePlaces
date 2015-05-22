@@ -16,6 +16,7 @@ package com.virtuumtech.android.googleplaces;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -40,15 +41,7 @@ import android.util.Log;
 
 public class NetworkService extends IntentService {
 	
-	public static final String PACKAGE_NAME = "com.virtuumtech.android.googleplaces.networkservice";
-	public static final String SERVICE = PACKAGE_NAME+".SERVICE";
-	public static final String DATA = PACKAGE_NAME+".DATA";
-	public static final String RECEIVER = PACKAGE_NAME + ".RECEIVER";
-	
-	public static final String ACTION_LOCATION_ADDRESS = "LOCATION_ADDRESS";
-	public static final String ACTION_URL_REQUEST = "URL_REQUEST";
-	
-	public static final String URL = PACKAGE_NAME+".URL";
+
 
 	private static final String TAG = "NetworkService";
 	
@@ -71,8 +64,8 @@ public class NetworkService extends IntentService {
 		Log.v(TAG,"onHandleIntent");
 		
 		// Get the SERVICE required in NetworkService
-		String CALLEDSERVICE = intent.getStringExtra(SERVICE);
-		mResultReceiver = intent.getParcelableExtra(RECEIVER);
+		String CALLEDSERVICE = intent.getStringExtra(GPConstants.SERVICE);
+		mResultReceiver = intent.getParcelableExtra(GPConstants.RECEIVER);
 		Log.i(TAG,"Called Service is "+CALLEDSERVICE);
 
 		switch (CALLEDSERVICE) {
@@ -86,8 +79,12 @@ public class NetworkService extends IntentService {
 				Log.i(TAG,"Downloading URL request");
 				downloadURL(intent);
 				break;
+			case "PHOTO_DOWNLOAD":
+				//Download the photo from the given URL
+				Log.i(TAG,"Download the Photo from url");
+				downloadPhoto(intent);
 			default :
-				Log.e(TAG,"Invalid Service called in NetworkService: "+SERVICE);
+				Log.e(TAG,"Invalid Service called in NetworkService: "+GPConstants.SERVICE);
 		}
 	}
 
@@ -96,7 +93,7 @@ public class NetworkService extends IntentService {
 		Log.v(TAG, "In getAddressUsingGeocoder");
 
 		// Get details specific to Geocoder from Intent object
-		int maxResults = intent.getIntExtra(MyAddress.MAXRESULTS, 1);
+		int maxResults = intent.getIntExtra(GPConstants.MAXRESULTS, 1);
 
 		Geocoder geocoder = new Geocoder(this, Locale.getDefault());
 		Bundle resultData = new Bundle();
@@ -104,7 +101,7 @@ public class NetworkService extends IntentService {
 		List<Address> addresses = null;
 
 		//Update the location details. 
-		Location location = intent.getParcelableExtra(MyAddress.LOCATION);
+		Location location = intent.getParcelableExtra(GPConstants.LOCATION);
 		double latitude = location.getLatitude();
 		double longitude = location.getLongitude();
 		
@@ -115,13 +112,13 @@ public class NetworkService extends IntentService {
 			// Catch the Illegal Longitude or Latitude
 			errorMessage = "Latitude:"+latitude+", Longitude:"+longitude+" values are not correct";
 			Log.e(TAG,errorMessage,illException);
-			mResultReceiver.send(MyAddress.ILLEGAL_LOCATION,resultData);
+			mResultReceiver.send(GPConstants.ILLEGAL_LOCATION,resultData);
 			return;
 		} catch (IOException ioException) {
 			// Catch the network issues
 			errorMessage = "Issues with accessing network";
 			Log.e(TAG,errorMessage,ioException);
-			mResultReceiver.send(MyAddress.NETWORK_ERROR,resultData);
+			mResultReceiver.send(GPConstants.NETWORK_ERROR,resultData);
 			return;
 		}
 		
@@ -129,25 +126,67 @@ public class NetworkService extends IntentService {
 		if (addresses == null) {
 			errorMessage = "Address returned null for the location "+latitude+" "+longitude;
 			Log.e(TAG,errorMessage);
-			mResultReceiver.send(MyAddress.FAILURE,resultData);
+			mResultReceiver.send(GPConstants.FAILURE,resultData);
 			return;
 		} else if (addresses.isEmpty()) {
 			errorMessage = "No address found for the location "+latitude+" "+longitude;
 			Log.e(TAG,errorMessage);
-			mResultReceiver.send(MyAddress.FAILURE,resultData);
+			mResultReceiver.send(GPConstants.FAILURE,resultData);
 			return;
 		}
 		
-		resultData.putParcelableArrayList(MyAddress.RESULT_DATA, (ArrayList) addresses);
-		mResultReceiver.send(MyAddress.SUCCESS, resultData);
+		resultData.putParcelableArrayList(GPConstants.RESULT_DATA, (ArrayList) addresses);
+		mResultReceiver.send(GPConstants.SUCCESS, resultData);
 	}
 	
+	// Downloads the Photo using https connection. 
+	// THe downloaded content will be passed to respective callback using ResultReceiver.
+	private void downloadPhoto (Intent intent) {
+		String urlStr = intent.getStringExtra(GPConstants.URL);
+		String actionType = intent.getStringExtra(GPConstants.TYPE);
+		Bundle resultData = new Bundle();
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		int resultCode;
 
+		
+		try {
+			// Create URL, establish connection and create buffered stream to read
+			Log.d(TAG,urlStr);
+			URL url = new URL(urlStr);
+			HttpsURLConnection httpsConnection = (HttpsURLConnection) url.openConnection();
+			
+			//Read the data using stream & write it to byte array
+			InputStream input = new BufferedInputStream(httpsConnection.getInputStream());
+			byte[] buffer = new byte[1024];
+			int len = 0;
+			while ((len = input.read(buffer)) != -1) {
+				output.write(buffer);
+			}
+			
+			input.close();
+			resultCode = RequestStatus.OK;
+		} catch (MalformedURLException e) {
+			Log.e(TAG,"Invalid URL passed, MalformedURLException",e);
+			resultCode = RequestStatus.INVALID_REQUEST;
+		} catch (IOException e) {
+			Log.e(TAG,"Issues in downloading content, IOException",e);
+			resultCode = RequestStatus.INVALID_REQUEST;
+		} catch (Exception e) {
+			Log.e(TAG,"Exception on downloading URL",e);
+			resultCode = RequestStatus.ERROR;
+		}
+		resultData.putByteArray(GPConstants.DATA, output.toByteArray());
+		resultData.putCharSequence(GPConstants.TYPE, actionType);
+		mResultReceiver.send(resultCode,resultData);
+	}
+
+	
 	// Downloads the URL using https connection. 
 	// THe downloaded content will be passed to respective callback using ResultReceiver.
 	private void downloadURL (Intent intent) {
 		String responseData = "";
-		String urlStr = intent.getStringExtra(URL);
+		String urlStr = intent.getStringExtra(GPConstants.URL);
+		String actionType = intent.getStringExtra(GPConstants.TYPE);
 		Bundle resultData = new Bundle();
 		int resultCode;
 		
@@ -177,7 +216,8 @@ public class NetworkService extends IntentService {
 			Log.e(TAG,"Exception on downloading URL",e);
 			resultCode = RequestStatus.ERROR;
 		}
-		resultData.putCharSequence(NetworkService.DATA, responseData);
+		resultData.putCharSequence(GPConstants.DATA, responseData);
+		resultData.putCharSequence(GPConstants.TYPE, actionType);
 		mResultReceiver.send(resultCode,resultData);
 	}
 

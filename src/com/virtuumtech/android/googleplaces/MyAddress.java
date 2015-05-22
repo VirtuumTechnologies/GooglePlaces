@@ -18,6 +18,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.location.LocationServices;
+import com.virtuumtech.android.googleplaces.listener.LocationUpdateListener;
 
 import android.content.Context;
 import android.content.Intent;
@@ -32,11 +33,6 @@ import android.util.Log;
 public class MyAddress implements ConnectionCallbacks,
 		OnConnectionFailedListener {
 	private static final String TAG = "MyAddress";
-	public static final String PACKAGE_NAME = "com.virtuumtech.android.googleplaces.MyAddress";
-	public static final String LOCATION = PACKAGE_NAME + ".LOCATION";
-	public static final String MAXRESULTS = PACKAGE_NAME + ".MAXRESULTS";
-	public static final String RESULT_DATA = PACKAGE_NAME + ".RESULT_DATA";
-
 	private Location mLocation;
 	private List<Address> mAddressList;
 	private Context mContext;
@@ -45,10 +41,6 @@ public class MyAddress implements ConnectionCallbacks,
 	private Address mAddress;
 	private int maxResults;
 	
-	public static final int SUCCESS = 1;
-	public static final int FAILURE = 0;
-	public static final int NETWORK_ERROR = -1;
-	public static final int ILLEGAL_LOCATION = -2;	
 
 	public MyAddress(Context context) {
 		mContext = context;
@@ -88,14 +80,14 @@ public class MyAddress implements ConnectionCallbacks,
 		// Return the cached value if query is for same location
 		if (location == null) {
 			Log.i(TAG, "Location is null");
-			addressListener.onAddressesUpdate(ILLEGAL_LOCATION, mAddressList);
+			addressListener.onAddressesUpdate(GPConstants.ILLEGAL_LOCATION, mAddressList);
 			return;
 		}
 
 		//If Location is not changed, return the cached address
 		if (isLocationEqual(location) && mAddressList != null) {
 			Log.i(TAG, "Location & Cached Location are same");
-			addressListener.onAddressesUpdate(SUCCESS, mAddressList);
+			addressListener.onAddressesUpdate(GPConstants.SUCCESS, mAddressList);
 			return;
 		}
 
@@ -172,13 +164,13 @@ public class MyAddress implements ConnectionCallbacks,
 		Log.v(TAG,"getStatusString");
 		String statusMsg = "Invalid Status Code";
 		
-		if (status == SUCCESS) {
+		if (status == GPConstants.SUCCESS) {
 			statusMsg = "Address details retrieved";
-		} else if (status == FAILURE) {
+		} else if (status == GPConstants.FAILURE) {
 			statusMsg = "No address found";
-		} else if (status == NETWORK_ERROR) {
+		} else if (status == GPConstants.NETWORK_ERROR) {
 			statusMsg = "The network service is not available";
-		} else if (status == ILLEGAL_LOCATION) {
+		} else if (status == GPConstants.ILLEGAL_LOCATION) {
 			statusMsg = "The location is invalid";
 		}
 		
@@ -193,13 +185,13 @@ public class MyAddress implements ConnectionCallbacks,
 		ResultReceiver resultReceiver = new ResultReceiver(new Handler()) {
 			public void onReceiveResult(int resultCode, Bundle resultData) {
 				Log.v(TAG, "onReciveResult");
-				if (resultCode == MyAddress.SUCCESS) {
+				if (resultCode == GPConstants.SUCCESS) {
 					Log.i(TAG,"Address Request is successful");
 					mAddressList = resultData
-							.getParcelableArrayList(RESULT_DATA);
+							.getParcelableArrayList(GPConstants.RESULT_DATA);
 					if (mAddressList.isEmpty() == true) {
 						mAddress = null;
-						resultCode = MyAddress.FAILURE;
+						resultCode = GPConstants.FAILURE;
 					} else {
 						// mAddressList = (List) mAddressList;
 						mAddress = mAddressList.get(0);
@@ -207,7 +199,7 @@ public class MyAddress implements ConnectionCallbacks,
 				} else {
 					Log.e(TAG,"Address Request is not successful");
 					mAddress = null;
-					resultCode = MyAddress.FAILURE;
+					resultCode = GPConstants.FAILURE;
 				}
 				addressListener.onAddressesUpdate(resultCode, mAddressList);
 			}
@@ -215,10 +207,10 @@ public class MyAddress implements ConnectionCallbacks,
 
 		//Passing the values to service class NetworkService to get the address using intent
 		Intent intent = new Intent(mContext, NetworkService.class);
-		intent.putExtra(NetworkService.SERVICE, NetworkService.ACTION_LOCATION_ADDRESS);
-		intent.putExtra(LOCATION, mLocation);
-		intent.putExtra(NetworkService.RECEIVER, resultReceiver);
-		intent.putExtra(MAXRESULTS, maxResults);
+		intent.putExtra(GPConstants.SERVICE, GPConstants.ACTION_LOCATION_ADDRESS);
+		intent.putExtra(GPConstants.LOCATION, mLocation);
+		intent.putExtra(GPConstants.RECEIVER, resultReceiver);
+		intent.putExtra(GPConstants.MAXRESULTS, maxResults);
 		mContext.startService(intent);
 	}
 	

@@ -9,7 +9,7 @@
  * @version 1.0
  */
 
-package com.virtuumtech.android.googleplaces;
+package com.virtuumtech.android.googleplaces.listener;
 
 import java.util.List;
 

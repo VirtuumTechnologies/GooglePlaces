@@ -19,8 +19,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.virtuumtech.android.googleplaces.GPConstants;
 import com.virtuumtech.android.googleplaces.NetworkService;
-import com.virtuumtech.android.googleplaces.PlaceSummary;
+import com.virtuumtech.android.googleplaces.PlacesList;
+import com.virtuumtech.android.googleplaces.listener.SearchResultsUpdate;
 
 import android.content.Context;
 import android.content.Intent;
@@ -42,7 +44,7 @@ public abstract class SearchQuery extends ResultReceiver {
 	private int statusCode ;
 	private Context mContext;
 	private long lastQueryTime = 0;
-	private SearchUpdateListener mUpdateListener;
+	private SearchResultsUpdate mUpdateListener;
 	
 	//To store the list of parameters required for google search
 	private HashMap<String, String> searchParameters = new HashMap<String, String>();
@@ -52,7 +54,7 @@ public abstract class SearchQuery extends ResultReceiver {
 		super(new Handler());
 		mContext = context;
 		urlQuery = queryUrl;
-		mUpdateListener = (SearchUpdateListener) context;
+		mUpdateListener = (SearchResultsUpdate) context;
 		addParameter("key", apikey);
 	}
 
@@ -246,9 +248,9 @@ public abstract class SearchQuery extends ResultReceiver {
 	protected void startService (String urlStr) {
 		Log.v(TAG,"Inside StartService");
 		Intent intent = new Intent(mContext, NetworkService.class);
-		intent.putExtra(NetworkService.SERVICE, NetworkService.ACTION_URL_REQUEST);
-		intent.putExtra(NetworkService.URL, urlStr);
-		intent.putExtra(NetworkService.RECEIVER, this);
+		intent.putExtra(GPConstants.SERVICE, GPConstants.ACTION_URL_REQUEST);
+		intent.putExtra(GPConstants.URL, urlStr);
+		intent.putExtra(GPConstants.RECEIVER, this);
 		mContext.startService(intent);
 	}
 	
@@ -258,13 +260,13 @@ public abstract class SearchQuery extends ResultReceiver {
 	 * @param data
 	 * @return
 	 */
-	protected ArrayList<PlaceSummary> readJsonFileForPlacesDetails (String data) {
-		Log.v(TAG,"Inside ArrayList");
+	protected ArrayList<PlacesList> readJsonFileForPlacesDetails (String data) {
+		Log.v(TAG,"Inside readJsonFileForPlacesDetails");
 		JSONObject jsonFile;
 		JSONArray jsonArray;
 		
 		//Define array to store the PlaceSummary
-		ArrayList<PlaceSummary> arrayPOI = new ArrayList<PlaceSummary>();
+		ArrayList<PlacesList> arrayPOI = new ArrayList<PlacesList>();
 		
 		try {
 			jsonFile= new JSONObject(data);
@@ -277,7 +279,7 @@ public abstract class SearchQuery extends ResultReceiver {
 				for (int i = 0; i < jsonArray.length(); i++ ) {
 					JSONObject jsonObj = jsonArray.getJSONObject(i);
 					//Read the values of each element and store it in PlaceSummary
-					PlaceSummary placeDetails = new PlaceSummary();
+					PlacesList placeDetails = new PlacesList();
 					placeDetails.setPlaceID(jsonObj.optString("place_id"));
 					placeDetails.setName(jsonObj.optString("name",""));
 					placeDetails.setRating(jsonObj.optDouble("rating", 0.0));
@@ -291,9 +293,9 @@ public abstract class SearchQuery extends ResultReceiver {
 					}
 
 					if(jsonObj.has("opening_hours")) {
-						placeDetails.setOpenNow(jsonObj.getJSONObject("opening_hours").optString("open_now","Not Known"));
+						placeDetails.setOpenNow(jsonObj.getJSONObject("opening_hours").optString("open_now",""));
 					} else {
-						placeDetails.setOpenNow("Not Known");
+						placeDetails.setOpenNow("");
 					}
 					Location loc = new Location ("");
 					loc.setLatitude(jsonObj.getJSONObject("geometry").getJSONObject("location").optDouble("lat"));
@@ -317,8 +319,8 @@ public abstract class SearchQuery extends ResultReceiver {
 	public void onReceiveResult(int resultCode, Bundle bundle) {
 		Log.v(TAG,"Inside onReceiveResult");
 		Log.d(TAG,"Result Code:"+resultCode+" - "+RequestStatus.getStatusValue(resultCode));
-		ArrayList<PlaceSummary> pDetails;
-		String data = bundle.getCharSequence(NetworkService.DATA).toString();
+		ArrayList<PlacesList> pDetails;
+		String data = bundle.getCharSequence(GPConstants.DATA).toString();
 		Log.d(TAG,data);
 		//Set the query time, hence next query time can be calculated
 		setLastQueryTime();
@@ -327,7 +329,7 @@ public abstract class SearchQuery extends ResultReceiver {
 		if (resultCode != RequestStatus.OK) {
 			Log.e(TAG,"Search query is not successful: "+RequestStatus.getStatusValue(resultCode));
 			setStatusCode(resultCode);
-			pDetails = new ArrayList<PlaceSummary>();
+			pDetails = new ArrayList<PlacesList>();
 			pDetails.clear();
 		} else {
 			Log.i(TAG,"Search Query is successful");

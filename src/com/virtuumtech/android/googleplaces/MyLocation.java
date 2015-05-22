@@ -27,6 +27,7 @@ import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListe
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.virtuumtech.android.googleplaces.listener.LocationUpdateListener;
 
 public class MyLocation implements ConnectionCallbacks, OnConnectionFailedListener, LocationListener {
 	
